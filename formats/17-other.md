@@ -1325,6 +1325,50 @@ follows from the text. Copies of one table sit at fixed strides through
   is the big general table (36,888 strings). The puzzle table was only
   reachable once multi-block tables were read correctly (above).
 
+### Dialogue occurrences, speakers and audio
+
+The following join was verified on local Xbox Series data. Begin with a
+specific scene and dialogue occurrence so that repeated keys and alternate
+takes can be retained in their original order.
+
+1. Read the turn's participant slot in its own [PSIN conversation](../structure/04-pso-objectgraph.md#psin-container).
+   Resolve the slot in that conversation's participant table to a full
+   32-bit participant hash. Match the hash to the cast in the corresponding
+   scene. Some scene handles use an alias and need an explicit link to the
+   speech identity. Character or model metadata can provide a display
+   label. Keep the full native identity when two actors share a model or label.
+2. Resolve the cue's subtitle label to its GXT key in the selected locale.
+   Keep the occurrence and the text key as separate fields. Check competing
+   text variants against scene evidence before selecting one. The
+   [Leonida PSIN export](https://github.com/ubiquitarianism/leonida/pull/1300)
+   records the native speaker and the subtitle hash for this join.
+3. Use the full wave identity to locate the matching
+   [ADAT stream](../structure/03-audio-awc.md#header). Check a stored name
+   against the expected full wave hash and check that its low 29 bits
+   equal the enclosing ADAT stream ID. Keep the
+   archive ID, bank offset, stream index and encoded byte range. These
+   distinguish different streams with the same short ID. Leave the audio
+   unresolved when the evidence still admits different streams.
+
+For example, two synthetic participants can both display as **Guard** and
+use the same model. Their slots and native hashes distinguish the turns.
+The same subtitle key can appear twice.
+
+| Turn | Participant slot | Native participant hash | Label | Subtitle key |
+|---|---:|---|---|---|
+| 1 | 2 | `0x11223344` | Guard | `0x10203040` |
+| 2 | 5 | `0x55667788` | Guard | `0x10203040` |
+
+Some cutscenes carry several lines in an interleaved
+[voice stem](../structure/03-audio-awc.md#music-streams-sub-streams). An
+audio reference for one line then needs the carrier address, sub-stream
+ID and a verified frame range within the decoded channel. A synthetic
+range `[12000, 50400)` at 48 kHz plays from 0.250 s up to 1.050 s,
+measured after the decoder applies Opus pre-skip. Confirm the range
+against the original decoded channel. The timing of rendered subtitles
+can differ from the sound. [SixNG's playback check](https://github.com/holdmysocks/SixNG/pull/226)
+verified eight such excerpts across four scenes.
+
 ## Names recovered by hash (2026-11-24)
 
 Exact case-sensitive joaat matches, each re-computed. The method, the odds and
